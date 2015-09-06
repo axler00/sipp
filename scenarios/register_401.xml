@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<scenario name="Register">
+
+    <send retrans="1">
+        <![CDATA[
+
+        REGISTER sip:kamailio.org SIP/2.0
+        Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+        Max-Forwards: 70
+        From: test<sip:test@kamailio.org>;tag=[call_number]
+        To: test<sip:test@kamailio.org>
+        Call-ID: [call_id]
+        CSeq: [cseq] REGISTER
+        Contact: <sip:test@[local_ip]:[local_port]>
+        Expires: 3600
+        Content-Length: 0
+        ]]>
+    </send>
+
+    <recv response="401" auth="true">
+    </recv>
+
+    <send retrans="1">
+        <![CDATA[
+        REGISTER sip:kamailio.org SIP/2.0
+        Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+        Max-Forwards: 70
+        From: test <sip:test@kamailio.org>;tag=[call_number]
+        To: test<sip:test@kamailio.org>
+        Call-ID: [call_id]
+        CSeq: [cseq] REGISTER
+        [authentication username=test password=1234]
+        Contact: <sip:test@[local_ip]:[local_port]>
+        Expires: 3600
+        Content-Length: 0
+        ]]>
+    </send>
+
+    <recv response="401">
+    </recv>
+
+</scenario>

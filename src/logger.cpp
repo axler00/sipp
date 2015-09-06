@@ -109,6 +109,10 @@ void print_bottom_line(FILE *f, int last)
             default:
                 ERROR("Internal error: creationMode=%d, thirdPartyMode=%d", creationMode, thirdPartyMode);
             }
+        } else if((creationMode == MODE_MIXED) and (display_scenario == main_scenario)) {
+            fprintf(f,"----------------Sipp Mixed Mode - main -  call originating scenario------------" SIPP_ENDL);
+        } else if((creationMode == MODE_MIXED) and (display_scenario == rx_scenario)) {
+            fprintf(f,"-----------------Sipp Mixed mode - rx - call terminating screnario-------------" SIPP_ENDL);
         } else {
             assert(creationMode == MODE_SERVER);
             switch(thirdPartyMode) {
@@ -333,7 +337,7 @@ void print_stats_in_file(FILE * f)
         sprintf(temp_str, "%3.1f(%d ms)/%5.3fs", rate, duration, (double)rate_period_ms / 1000.0);
     }
     unsigned long long total_calls = display_scenario->stats->GetStat(CStat::CPT_C_IncomingCallCreated) + display_scenario->stats->GetStat(CStat::CPT_C_OutgoingCallCreated);
-    if( creationMode == MODE_SERVER) {
+    if(( creationMode == MODE_SERVER) || ((creationMode == MODE_MIXED) and (display_scenario==rx_scenario))) {
         fprintf
         (f,
          "  Port   Total-time  Total-calls  Transport"
@@ -345,7 +349,7 @@ void print_stats_in_file(FILE * f)
          total_calls,
          TRANSPORT_TO_STRING(transport));
     } else {
-        assert(creationMode == MODE_CLIENT);
+        assert((creationMode == MODE_CLIENT) || ((creationMode == MODE_MIXED) and (display_scenario==main_scenario)));
         if (users >= 0) {
             fprintf(f, "     Users (length)");
         } else {
@@ -385,7 +389,7 @@ void print_stats_in_file(FILE * f)
             (clock_tick-last_report_time) / divisor);
 
     /* 2nd line */
-    if( creationMode == MODE_SERVER) {
+    if(( creationMode == MODE_SERVER) || ((creationMode == MODE_MIXED) and (display_scenario==rx_scenario))) {
         sprintf(temp_str, "%llu calls", display_scenario->stats->GetStat(CStat::CPT_C_CurrentCall));
     } else {
         sprintf(temp_str, "%llu calls (limit %u)", display_scenario->stats->GetStat(CStat::CPT_C_CurrentCall), open_calls_allowed);
@@ -402,7 +406,7 @@ void print_stats_in_file(FILE * f)
     sprintf(temp_str,"%llu dead call msg (discarded)",
             display_scenario->stats->GetStat(CStat::CPT_G_C_DeadCallMsgs));
     fprintf(f,"  %-37s", temp_str);
-    if( creationMode == MODE_CLIENT) {
+    if ((creationMode == MODE_CLIENT) || ((creationMode == MODE_MIXED) and (display_scenario==main_scenario))) {
         sprintf(temp_str,"%llu out-of-call msg (discarded)",
                 display_scenario->stats->GetStat(CStat::CPT_G_C_OutOfCallMsgs));
         fprintf(f,"  %-37s", temp_str);
@@ -536,7 +540,7 @@ void print_stats_in_file(FILE * f)
                 sprintf(temp_str, "%s", src->getMethod());
             }
 
-            if(creationMode == MODE_SERVER) {
+            if((creationMode == MODE_SERVER) || ((creationMode == MODE_MIXED) and (display_scenario==rx_scenario))) {
                 fprintf(f,"  <---------- %-10s ", temp_str);
             } else {
                 fprintf(f,"  %10s ----------> ", temp_str);
@@ -563,7 +567,7 @@ void print_stats_in_file(FILE * f)
                         "" /* Unexpected. */);
             }
         } else if(curmsg -> recv_response) {
-            if(creationMode == MODE_SERVER) {
+            if((creationMode == MODE_SERVER) || ((creationMode == MODE_MIXED) and (display_scenario==rx_scenario))) {
                 fprintf(f,"  ----------> %-10d ", curmsg -> recv_response);
             } else {
                 fprintf(f,"  %10d <---------- ", curmsg -> recv_response);
@@ -598,7 +602,7 @@ void print_stats_in_file(FILE * f)
             }
             int len = strlen(desc) < 9 ? 9 : strlen(desc);
 
-            if(creationMode == MODE_SERVER) {
+            if((creationMode == MODE_SERVER) || ((creationMode == MODE_MIXED) and (display_scenario==rx_scenario))) {
                 fprintf(f,"  [%9s] Pause%*s", desc, 23 - len > 0 ? 23 - len : 0, "");
             } else {
                 fprintf(f,"       Pause [%9s]%*s", desc, 18 - len > 0 ? 18 - len : 0, "");
@@ -607,7 +611,7 @@ void print_stats_in_file(FILE * f)
             fprintf(f,"%-9d", curmsg->sessions);
             fprintf(f,"                     %-9lu" , curmsg->nb_unexp);
         } else if(curmsg -> recv_request) {
-            if(creationMode == MODE_SERVER) {
+            if((creationMode == MODE_SERVER) || ((creationMode == MODE_MIXED) and (display_scenario==rx_scenario))) {
                 fprintf(f,"  ----------> %-10s ", curmsg -> recv_request);
             } else {
                 fprintf(f,"  %10s <---------- ", curmsg -> recv_request);

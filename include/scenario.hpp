@@ -42,6 +42,7 @@
 
 #define MODE_CLIENT        0
 #define MODE_SERVER        1
+#define MODE_MIXED        2
 
 #define MODE_3PCC_NONE                0
 #define MODE_3PCC_CONTROLLER_A  2
@@ -223,6 +224,7 @@ private:
 
 /* There are external variable containing the current scenario */
 extern scenario      *main_scenario;
+extern scenario      *rx_scenario;
 extern scenario      *ooc_scenario;
 extern scenario      *aa_scenario;
 extern scenario      *display_scenario;

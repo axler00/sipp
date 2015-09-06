@@ -457,14 +457,14 @@ unsigned long call::hash(const char * msg)
 }
 
 /******************* Call class implementation ****************/
-call::call(const char *p_id, bool use_ipv6, int userId, struct sockaddr_storage *dest) : listener(p_id, true)
+call::call(scenario * call_scenario, const char *p_id, bool use_ipv6, int userId, struct sockaddr_storage *dest) : listener(p_id, true)
 {
-    init(main_scenario, NULL, dest, p_id, userId, use_ipv6, false, false);
+    init(call_scenario, NULL, dest, p_id, userId, use_ipv6, false, false);
 }
 
-call::call(const char *p_id, struct sipp_socket *socket, struct sockaddr_storage *dest) : listener(p_id, true)
+call::call(scenario * call_scenario, const char *p_id, struct sipp_socket *socket, struct sockaddr_storage *dest) : listener(p_id, true)
 {
-    init(main_scenario, socket, dest, p_id, 0 /* No User. */, socket->ss_ipv6, false /* Not Auto. */, false);
+    init(call_scenario, socket, dest, p_id, 0 /* No User. */, socket->ss_ipv6, false /* Not Auto. */, false);
 }
 
 call::call(scenario * call_scenario, struct sipp_socket *socket, struct sockaddr_storage *dest, const char * p_id, int userId, bool ipv6, bool isAutomatic, bool isInitialization) : listener(p_id, true)
@@ -3920,12 +3920,12 @@ call::T_ActionResult call::executeAction(char * msg, message *curmsg)
 #define PTHREAD_STACK_MIN  16384
 #endif
             //pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN);
-            if (media_thread != 0) {
+            //if (media_thread != 0) {
                 // If a media_thread is already active, kill it before starting a new one
-                pthread_cancel(media_thread);
-                pthread_join(media_thread, NULL);
-                media_thread = 0;
-            }
+                //pthread_cancel(media_thread);
+                //pthread_join(media_thread, NULL);
+                //media_thread = 0;
+            //}
             int ret = pthread_create(&media_thread, &attr, send_wrapper,
                                      (void *) play_args);
             if(ret)

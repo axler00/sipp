@@ -103,6 +103,8 @@ struct sipp_option {
 #define SIPP_OPTION_LFOVERWRITE   37
 #define SIPP_OPTION_PLUGIN        38
 #define SIPP_OPTION_NEED_SCTP     39
+#define SIPP_OPTION_RX_SCENARIO   40
+#define SIPP_OPTION_RX_INPUT_FILE 41
 #define SIPP_HELP_TEXT_HEADER    255
 
 /* Put each option, its help text, and type in this table. */
@@ -113,8 +115,10 @@ struct sipp_option options_table[] = {
     {"", "Scenario file options:", SIPP_HELP_TEXT_HEADER, NULL, 0},
     {"sd", "Dumps a default scenario (embedded in the SIPp executable)", SIPP_OPTION_SCENARIO, NULL, 0},
     {"sf", "Loads an alternate XML scenario file.  To learn more about XML scenario syntax, use the -sd option to dump embedded scenarios. They contain all the necessary help.", SIPP_OPTION_SCENARIO, NULL, 2},
+    {"rxsf", "Loads an alternate receive xml scenario file as the second scenario - enabling a mixture of originating and terminating calls to be executed. If this is included then the second scenario MUST be a server mode scenario, and the first scenario (specified in -sf / -sn) MUST be a client-mode scenario. If both -snrx and -sfrx are ommitted then only a single scenario is executed.\n", SIPP_OPTION_RX_SCENARIO, NULL, 2},
     {"oocsf", "Load out-of-call scenario.", SIPP_OPTION_OOC_SCENARIO, NULL, 2},
     {"oocsn", "Load out-of-call scenario.", SIPP_OPTION_OOC_SCENARIO, NULL, 2},
+    {"rxsn", "Use a default scenario (embedded in the sipp executable) for the second scenario - enabling a mixture of originating and terminating calls to be executed. If this is included then the second scenario MUST be a server mode scenario, and the first scenario (specified in -sf / -sn) MUST be a client-mode scenario. If both -snrx and -sfrx are ommitted then only a single scenario is executed.\n", SIPP_OPTION_RX_SCENARIO, NULL, 2},
     {
         "sn", "Use a default scenario (embedded in the SIPp executable). If this option is omitted, the Standard SipStone UAC scenario is loaded.\n"
         "Available values in this version:\n\n"
@@ -243,6 +247,9 @@ struct sipp_option options_table[] = {
     {"inf", "Inject values from an external CSV file during calls into the scenarios.\n"
      "First line of this file say whether the data is to be read in sequence (SEQUENTIAL), random (RANDOM), or user (USER) order.\n"
      "Each line corresponds to one call and has one or more ';' delimited data fields. Those fields can be referred as [field0], [field1], ... in the xml scenario file.  Several CSV files can be used simultaneously (syntax: -inf f1.csv -inf f2.csv ...)", SIPP_OPTION_INPUT_FILE, NULL, 1},
+    {"rxinf", "Inject values from an external CSV file during calls into the scenarios.\n"
+            "First line of this file say whether the data is to be read in sequence (SEQUENTIAL), random (RANDOM), or user (USER) order.\n"
+            "Each line corresponds to one call and has one or more ';' delimited data fields. Those fields can be referred as [field0], [field1], ... in the xml scenario file.  Several CSV files can be used simultaneously (syntax: -inf f1.csv -inf f2.csv ...)", SIPP_OPTION_RX_INPUT_FILE, NULL, 1},
     {"infindex", "file field\nCreate an index of file using field.  For example -inf users.csv -infindex users.csv 0 creates an index on the first key.", SIPP_OPTION_INDEX_FILE, NULL, 1 },
     {"ip_field", "Set which field from the injection file contains the IP address from which the client will send its messages.\n"
      "If this option is omitted and the '-t ui' option is present, then field 0 is assumed.\n"
@@ -1487,6 +1494,28 @@ int main(int argc, char *argv[])
                 }
             }
             break;
+            case SIPP_OPTION_RX_INPUT_FILE:
+            {
+                REQUIRE_ARG();
+                CHECK_PASS();
+                FileContents *rxData = new FileContents(argv[argi]);
+                char *name = argv[argi];
+                if (strrchr(name, '/')) {
+                    name = strrchr(name, '/') + 1;
+                } else if (strrchr(name, '\\')) {
+                    name = strrchr(name, '\\') + 1;
+                }
+                assert(name);
+                inFiles[name] = rxData;
+                /* By default, the first file is used for IP address input. */
+                if (!rx_ip_file) {
+                    rx_ip_file = name;
+                }
+                if (!rx_default_file) {
+                    rx_default_file = name;
+                }
+            }
+            break;
             case SIPP_OPTION_INDEX_FILE:
                 REQUIRE_ARG();
                 REQUIRE_ARG();
@@ -1680,6 +1709,29 @@ int main(int argc, char *argv[])
                     int i = find_scenario(argv[argi]);
                     fprintf(stdout, "%s", default_scenario[i]);
                     exit(EXIT_OTHER);
+                } else {
+                    ERROR("Internal error, I don't recognize %s as a scenario option\n", argv[argi] - 1);
+                }
+                break;
+            case SIPP_OPTION_RX_SCENARIO:
+                REQUIRE_ARG();
+                CHECK_PASS();
+                creationMode=MODE_MIXED;
+                if (!strcmp(argv[argi - 1], "-rxsf")) {
+                    const char* ext = strrchr(argv[argi], '.');
+                    if (ext && strcmp(ext, ".xml") == 0) {
+                        scenario_file = strndup(argv[argi], ext - argv[argi]);
+                    } else {
+                        scenario_file = strdup(argv[argi]);
+                    }
+                    rx_scenario = new scenario(argv[argi], 0);
+                    rx_scenario->stats->setFileName(rx_scenario_file, ".csv");
+                } else if (!strcmp(argv[argi - 1], "-rxsn")) {
+                    int i = find_scenario(argv[argi]);
+                    rx_scenario = new scenario(0, i);
+                    rx_scenario_file = new char [strlen(argv[argi])+1] ;
+                    sprintf(rx_scenario_file,"%s", argv[argi]);
+                    rx_scenario->stats->setFileName(argv[argi], ".csv");
                 } else {
                     ERROR("Internal error, I don't recognize %s as a scenario option\n", argv[argi] - 1);
                 }
@@ -2107,7 +2159,7 @@ int main(int argc, char *argv[])
 
     /* Setting the rate and its dependant params (open_calls_allowed) */
     /* If we are a client, then create the task to open new calls. */
-    if (creationMode == MODE_CLIENT) {
+    if ((creationMode == MODE_CLIENT) || ((creationMode == MODE_MIXED) and (display_scenario==main_scenario))) {
         CallGenerationTask::initialize();
         CallGenerationTask::set_rate(rate);
     }

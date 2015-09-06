@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<scenario name="Call UAS">
+
+    <recv request="INVITE">
+        <action>
+            <ereg regexp="([[:alnum:]]*)<sip:([[:alnum:]]*)@kamailio.org>" search_in="hdr" header="To:" assign_to="1,2" />
+            <exec command="echo [$1]" />
+        </action>
+    </recv>
+
+    <send>
+        <![CDATA[
+
+        SIP/2.0 180 Ringing
+        [last_Via:]
+        [last_From:]
+        [last_To:];tag=[call_number]
+        [last_Call-ID:]
+        [last_CSeq:]
+        Contact: <sip:[$2]@[local_ip]:[local_port];transport=[transport]>
+        Content-Length: 0
+
+        ]]>
+    </send>
+
+    <pause milliseconds="10000">
+    </pause>
+
+    <send>
+        <![CDATA[
+
+        SIP/2.0 200 OK
+        [last_Via:]
+        [last_From:]
+        [last_To:];tag=[call_number]
+        [last_Call-ID:]
+        [last_CSeq:]
+        Contact: <sip:[$2]@[local_ip]:[local_port];transport=[transport]>
+        Content-Length: 0
+
+        ]]>
+    </send>
+
+    <recv request="ACK">
+    </recv>
+
+    <recv request="BYE">
+    </recv>
+
+    <send>
+        <![CDATA[
+
+        SIP/2.0 200 OK
+        [last_Via:]
+        [last_From:]
+        [last_To:];tag=[call_number]
+        [last_Call-ID:]
+        [last_CSeq:]
+        Contact: <sip:[$2]@[local_ip]:[local_port];transport=[transport]>
+        Content-Length: 0
+
+        ]]>
+    </send>
+
+</scenario>

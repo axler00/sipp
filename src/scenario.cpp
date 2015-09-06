@@ -133,6 +133,7 @@ message::~message()
 
 /******** Global variables which compose the scenario file **********/
 
+scenario      *rx_scenario;
 scenario      *main_scenario;
 scenario      *ooc_scenario;
 scenario      *aa_scenario;
@@ -1189,7 +1190,7 @@ void scenario::computeSippMode()
     bool isRecvCmdFound = false;
     bool isSendCmdFound = false;
 
-    creationMode = -1;
+    if (creationMode!=MODE_MIXED) creationMode = -1;
     sendMode = -1;
     thirdPartyMode = MODE_3PCC_NONE;
 

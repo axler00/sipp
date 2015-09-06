@@ -124,6 +124,8 @@ static void process_set(char* what)
             display_scenario = main_scenario;
         } else if (!strcmp(rest, "ooc")) {
             display_scenario = ooc_scenario;
+        } else if (!strcmp(rest, "rx")) {
+            display_scenario = rx_scenario;
         } else {
             WARNING("Unknown display scenario: %s", rest);
         }
@@ -1130,7 +1132,7 @@ void process_message(struct sipp_socket *socket, char *msg, ssize_t msg_size, st
                 thirdPartyMode == MODE_MASTER_PASSIVE || thirdPartyMode == MODE_SLAVE) {
             // Adding a new OUTGOING call !
             main_scenario->stats->computeStat(CStat::E_CREATE_OUTGOING_CALL);
-            call *new_ptr = new call(call_id, local_ip_is_ipv6, 0, use_remote_sending_addr ? &remote_sending_sockaddr : &remote_sockaddr);
+            call *new_ptr = new call(main_scenario, call_id, is_ipv6, 0, use_remote_sending_addr ? &remote_sending_sockaddr : &remote_sockaddr);
             if (!new_ptr) {
                 ERROR("Out of memory allocating a call!");
             }
@@ -1170,7 +1172,16 @@ void process_message(struct sipp_socket *socket, char *msg, ssize_t msg_size, st
 
             // Adding a new INCOMING call !
             main_scenario->stats->computeStat(CStat::E_CREATE_INCOMING_CALL);
-            listener_ptr = new call(call_id, socket, use_remote_sending_addr ? &remote_sending_sockaddr : src);
+            listener_ptr = new call(main_scenario, call_id, socket, use_remote_sending_addr ? &remote_sending_sockaddr : src);
+            if (!listener_ptr) {
+                ERROR("Out of memory allocating a call!");
+            }
+        }
+        else if(creationMode == MODE_MIXED)
+        {
+            // Adding a new INCOMING call !
+            rx_scenario->stats->computeStat(CStat::E_CREATE_INCOMING_CALL);
+            listener_ptr = new call(rx_scenario, call_id, socket, use_remote_sending_addr ? &remote_sending_sockaddr : src);
             if (!listener_ptr) {
                 ERROR("Out of memory allocating a call!");
             }
